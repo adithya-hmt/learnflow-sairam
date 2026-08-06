@@ -1,0 +1,18 @@
+plugins {
+  id 'com.android.library'
+  id 'expo-module-gradle-plugin'
+}
+
+group = 'edu.sairam.learnflow.phoneactivity'
+version = '0.1.0'
+
+android {
+  namespace "edu.sairam.learnflow.phoneactivity"
+  defaultConfig {
+    versionCode 1
+    versionName "0.1.0"
+  }
+  lintOptions {
+    abortOnError false
+  }
+}

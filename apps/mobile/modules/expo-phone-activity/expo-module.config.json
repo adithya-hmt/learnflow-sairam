@@ -1,0 +1,6 @@
+{
+  "platforms": ["android"],
+  "android": {
+    "modules": ["edu.sairam.learnflow.phoneactivity.ExpoPhoneActivityModule"]
+  }
+}

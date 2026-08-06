@@ -1,0 +1,12 @@
+node_modules/
+.expo/
+dist/
+.env
+.env.*
+!.env.example
+*.jks
+*.keystore
+google-services.json
+work/
+outputs/*.apk
+outputs/*qr.png

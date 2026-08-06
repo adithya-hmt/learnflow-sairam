@@ -1,0 +1,19 @@
+{
+  "name": "learnflow",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "start": "npm --workspace @learnflow/mobile run start",
+    "android": "npm --workspace @learnflow/mobile run android",
+    "typecheck": "npm --workspace @learnflow/mobile run typecheck",
+    "test": "npm --workspace @learnflow/mobile run test",
+    "verify": "npm run typecheck && npm run test"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.14",
+    "@types/react": "^19.2.18"
+  }
+}
