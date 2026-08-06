@@ -5,7 +5,7 @@ import { router } from 'expo-router';
 import { Card, Pill, Screen, Section, s } from '@/components';
 import { formatCalendarDate, formatClockTime, formatDateTime, getWeekDates, isUpcomingEvent } from '@/domain';
 import { useAssignments, useEvents, useProfile } from '@/data/hooks';
-import { academicMilestones, getScheduleStatus, isWeekday, periods, timetable, weekdays, type Weekday } from '@/studentData';
+import { academicMilestones, getScheduleStatus, isSectionDStudent, isWeekday, periods, timetable, weekdays, type Weekday } from '@/studentData';
 import { colors } from '@/theme';
 import { useAuth } from '@/auth';
 
@@ -39,7 +39,7 @@ export default function Calendar() {
   const upcomingEvents = useMemo(() => events.filter((event) => isUpcomingEvent(event.startsAt, event.endsAt, now)), [events, now]);
   const status = currentWeekday === selected ? getScheduleStatus(selected, now) : null;
 
-  if (auth.configured) return <Screen title="My calendar" subtitle={profile?.department || 'Your live college schedule'}>
+  if (auth.configured && !isSectionDStudent(profile)) return <Screen title="My calendar" subtitle={profile?.department || 'Your live college schedule'}>
     <ClockCard now={now} message="Live schedule uses this device’s local time." />
     <Section title="Upcoming events">{upcomingEvents.length === 0 ? <Card><Text style={s.body}>No upcoming classes or events are currently published for this account.</Text></Card> : upcomingEvents.slice(0, 12).map((event) => <Card key={event.id}><Text style={c.title}>{event.title}</Text><Text style={s.body}>{formatDateTime(event.startsAt)} · {event.location || event.kind}</Text></Card>)}</Section>
     <Section title="Upcoming work">{assignments.length === 0 ? <Card><Text style={s.body}>No pending assignments are currently published.</Text></Card> : assignments.slice(0, 8).map((item) => <Pressable key={item.id} onPress={() => router.push(`/assignment/${item.id}`)}><Card style={c.assignment}><View style={{ flex: 1 }}><Text style={c.title}>{item.title}</Text><Text style={s.body}>{item.course} · {item.dueAt ? formatDateTime(item.dueAt) : item.status}</Text></View><Pill text={item.status} tone="gold" /></Card></Pressable>)}</Section>

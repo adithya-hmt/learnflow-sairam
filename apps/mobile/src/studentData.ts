@@ -13,6 +13,8 @@ export const periods = [
 export type Weekday = 'Monday' | 'Tuesday' | 'Wednesday' | 'Thursday' | 'Friday';
 export const weekdays: Weekday[] = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
 export const isWeekday = (value: string): value is Weekday => weekdays.includes(value as Weekday);
+export const isSectionDStudent = (profile: { role: string; department: string | null; yearOfStudy: number | null; semester: number | null; section: string | null } | null | undefined) =>
+  profile?.role === 'student' && profile.department === 'Computer Science and Engineering' && profile.yearOfStudy === 3 && profile.semester === 5 && profile.section === 'D';
 export type PeriodNumber = typeof periods[number]['period'];
 export type ClassSlot = { period: PeriodNumber; code: string; title: string; room?: string };
 export const timetable: Record<Weekday, ClassSlot[]> = {
@@ -67,7 +69,7 @@ export const subjectAttendance = [
   { code: '24ITPC501', name: 'Computer Networks', percentage: 86.96 },
   { code: '24ITPL501', name: 'Computer Networks Laboratory', percentage: 80 },
   { code: '24MGMC501', name: 'Constitution of India', percentage: 100 },
-  { code: '24SCOE901', name: 'Fundamentals of Cyber Security', percentage: 75 },
+  { code: '24CSEL503', name: 'Fundamentals of Cyber Security', percentage: 75 },
   { code: 'MC', name: 'Mentor Counselling', percentage: 50 },
 ];
 
@@ -82,7 +84,7 @@ export const recentAttendance = [
 ];
 
 export const academicMilestones = [
-  { date: '27 Aug – 2 Sep', title: 'CAT I', tone: 'coral' as const },
+  { date: '27 Aug – 3 Sep', title: 'CAT I', tone: 'coral' as const },
   { date: '8 Sep', title: 'CAT I marks published', tone: 'blue' as const },
   { date: '22–29 Oct', title: 'CAT II', tone: 'coral' as const },
   { date: '29 Oct', title: 'Last working day', tone: 'gold' as const },

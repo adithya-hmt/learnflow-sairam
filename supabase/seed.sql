@@ -10,9 +10,9 @@ insert into public.courses (code, title, description, department, status, starts
   ('24ITEL516', 'Learning Analytics Tools', 'Professional Elective II.', 'Computer Science and Engineering', 'published', '2026-07-02', '2026-10-29'),
   ('24ITPL501', 'Computer Networks Laboratory', 'Semester V Computer Networks practical course.', 'Computer Science and Engineering', 'published', '2026-07-02', '2026-10-29'),
   ('24MGMC501', 'Constitution of India', 'Mandatory Semester V course.', 'Computer Science and Engineering', 'published', '2026-07-02', '2026-10-29'),
-  ('24CSTP501', 'Skill Enhancement', 'Skill and habits development course.', 'Computer Science and Engineering', 'published', '2026-07-02', '2026-10-29'),
+  ('20CSTP501', 'Skill Enhancement', 'Skill and habits development course.', 'Computer Science and Engineering', 'published', '2026-07-02', '2026-10-29'),
   ('24CSID501', 'Prototype Development Lab I', 'Semester V prototype development laboratory.', 'Computer Science and Engineering', 'published', '2026-07-02', '2026-10-29'),
-  ('24SCOE901', 'Fundamentals of Cyber Security', 'Open elective.', 'Computer Science and Engineering', 'published', '2026-07-02', '2026-10-29')
+  ('24CSEL503', 'Fundamentals of Cyber Security', 'Open elective.', 'Computer Science and Engineering', 'published', '2026-07-02', '2026-10-29')
 on conflict (code) do update set title = excluded.title, description = excluded.description, starts_on = excluded.starts_on, ends_on = excluded.ends_on;
 
 with milestone(title, description, kind, starts_at, ends_at) as (values
