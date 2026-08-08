@@ -26,6 +26,7 @@
     },
     "plugins": [
       "expo-router",
+      "expo-camera",
       "expo-sqlite",
       "expo-secure-store",
       "expo-video",
