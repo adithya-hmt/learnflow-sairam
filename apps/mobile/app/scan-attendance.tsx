@@ -16,14 +16,14 @@ export default function ScanAttendance() {
   if (!permission.granted) return <Screen title="Scan attendance" subtitle="Use the live QR shown in your classroom.">
     <Card><Text style={a.title}>Camera access is needed</Text><Text style={[s.body, a.body]}>LearnFlow only uses the camera to read the attendance QR. It does not record video.</Text><Button label="Allow camera" onPress={() => void requestPermission()} /></Card>
   </Screen>;
-  const onScanned = ({ data }: { data: string }) => {
+  const onScanned = async ({ data }: { data: string }) => {
     if (!scanning) return;
     try {
       const qr = parseAttendanceQr(data);
       const now = new Date();
       const day = now.toLocaleDateString('en-US', { weekday: 'long' });
       const schedule = isWeekday(day) ? getScheduleStatus(day, now).current : null;
-      void recordAttendanceScan({ classCode: qr.classCode, token: qr.token, schedule: schedule ? `${schedule.title} · ${schedule.start}–${schedule.end}` : 'No timetable window now', inWindow: Boolean(schedule) });
+      await recordAttendanceScan({ classCode: qr.classCode, token: qr.token, schedule: schedule ? `${schedule.title} · ${schedule.start}–${schedule.end}` : 'No timetable window now', inWindow: Boolean(schedule) });
       setResult(qr);
       setScanning(false);
     } catch (error) { Alert.alert('Invalid QR', error instanceof Error ? error.message : 'Scan the live classroom attendance QR.'); }
