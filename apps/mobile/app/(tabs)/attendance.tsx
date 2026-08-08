@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { Card, Pill, Progress, Screen, Section, s } from '@/components';
 import { recentAttendance, student, subjectAttendance } from '@/studentData';
 import { colors } from '@/theme';
@@ -17,7 +17,7 @@ export default function Attendance() {
   const { data: profile } = useProfile();
   const { data: records = [] } = useAttendance();
   const [receipts, setReceipts] = useState<AttendanceReceipt[]>([]);
-  useEffect(() => { void getAttendanceReceipts().then(setReceipts); }, []);
+  useFocusEffect(useCallback(() => { void getAttendanceReceipts().then(setReceipts); }, []));
   if (auth.configured) return <Screen title="My attendance" subtitle={profile?.fullName || 'Signed-in student'}>
     <Pressable accessibilityRole="button" onPress={() => router.push('/scan-attendance')}><Card style={a.scan}><View><Text style={a.scanTitle}>Scan classroom QR</Text><Text style={a.scanBody}>Read the current attendance token</Text></View><Text style={a.scanArrow}>›</Text></Card></Pressable>
     <Card style={a.hero}><View><Text style={a.percent}>{records.length}</Text><Text style={a.heroLabel}>Recorded check-ins</Text></View><View style={a.heroSide}><Pill text="LIVE DATA" tone="green" /><Text style={a.heroText}>{profile?.department || 'Department not set'}</Text><Text style={a.heroMeta}>Attendance percentages appear when scheduled session totals are available.</Text></View></Card>
@@ -38,7 +38,7 @@ export default function Attendance() {
 }
 
 function Legend({ color, label }: { color: string; label: string }) { return <View style={s.row}><View style={[a.legendDot, { backgroundColor: color }]} /><Text style={a.legendText}>{label}</Text></View>; }
-function ReceiptSection({ receipts }: { receipts: AttendanceReceipt[] }) { return <Section title="Scan receipts"><Card>{receipts.length === 0 ? <Text style={s.body}>Your live QR scans will appear here.</Text> : receipts.slice(0, 5).map((receipt) => <View key={receipt.id} style={a.receipt}><View style={{ flex: 1 }}><Text style={a.receiptTitle}>Class {receipt.classCode}</Text><Text style={s.body}>{new Date(receipt.scannedAt).toLocaleString('en-IN')} · {receipt.schedule}</Text></View><Pill text={receipt.status.replace('-', ' ').toUpperCase()} tone={receipt.status === 'pending' ? 'gold' : receipt.status === 'outside-window' ? 'coral' : 'blue'} /></View>)}</Card></Section>; }
+function ReceiptSection({ receipts }: { receipts: AttendanceReceipt[] }) { return <Section title="Scan receipts"><Card>{receipts.length === 0 ? <Text style={s.body}>Your live QR scans will appear here.</Text> : receipts.slice(0, 5).map((receipt) => <View key={receipt.id} style={a.receipt}><View style={{ flex: 1 }}><Text style={a.receiptTitle}>Class {receipt.classCode}</Text><Text style={s.body}>{new Date(receipt.scannedAt).toLocaleString('en-IN')} · {receipt.schedule}</Text></View><Pill text={receipt.status.replace('-', ' ').toUpperCase()} tone={receipt.status === 'confirmed' ? 'green' : receipt.status === 'rejected' || receipt.status === 'outside-window' ? 'coral' : receipt.status === 'pending' || receipt.status === 'unverified' ? 'gold' : 'blue'} /></View>)}</Card></Section>; }
 
 const a = StyleSheet.create({
   scan: { backgroundColor: colors.mint, borderColor: '#B7E4D8', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }, scanTitle: { color: colors.ink, fontSize: 16, fontWeight: '900' }, scanBody: { color: colors.green, fontSize: 12, marginTop: 3 }, scanArrow: { color: colors.green, fontSize: 30, fontWeight: '300' }, hero: { backgroundColor: colors.navy, borderColor: colors.navy, flexDirection: 'row', alignItems: 'center', gap: 18 }, percent: { color: colors.white, fontSize: 39, fontWeight: '900', letterSpacing: -1 }, heroLabel: { color: '#BFD0D9', fontSize: 11, fontWeight: '700' }, heroSide: { flex: 1, gap: 5 }, heroText: { color: colors.white, fontSize: 13, fontWeight: '800', marginTop: 3 }, heroMeta: { color: '#BFD0D9', fontSize: 10, lineHeight: 15 },
