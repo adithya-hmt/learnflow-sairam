@@ -1,4 +1,7 @@
 -- Safe seed: does not create login credentials.
+-- Remove the exact legacy demo rows so an older seed cannot leak fabricated data into the connected pilot.
+delete from public.achievements where slug = 'first-login' and title = 'First steps' and description = 'Started your LearnFlow journey.';
+delete from public.social_posts where body = 'Welcome to the LearnFlow community feed.' and club_name = 'LearnFlow';
 update public.courses set status = 'archived' where code = 'CS101';
 
 insert into public.courses (code, title, description, department, status, starts_on, ends_on) values
