@@ -8,6 +8,7 @@ import { recordAttendanceScan } from '@/attendance-receipts';
 import { useProfile } from '@/data/hooks';
 import { useTimetable } from '@/data/hooks';
 import { currentTimetableSlot } from '@/timetable';
+import { getScheduleStatus, isWeekday } from '@/studentData';
 import { colors } from '@/theme';
 import { useAuth } from '@/auth';
 
@@ -27,10 +28,12 @@ export default function ScanAttendance() {
     try {
       const qr = parseAttendanceQr(data);
       const now = new Date();
-      const schedule = currentTimetableSlot(liveSlots, now);
+      const day = now.toLocaleDateString('en-US', { weekday: 'long' });
+      const schedule = auth.configured ? currentTimetableSlot(liveSlots, now) : (isWeekday(day) ? getScheduleStatus(day, now).current : null);
       const actorId = auth.configured ? (profile?.id || auth.session?.user.id) : 'demo-student';
       if (!actorId) { Alert.alert('Profile unavailable', 'Wait for your signed-in profile to load before scanning.'); return; }
-      await recordAttendanceScan({ actorId, classCode: qr.classCode, token: qr.token, schedule: schedule ? `${schedule.displayTitle} · ${schedule.startsAt}–${schedule.endsAt}` : 'No timetable window now', inWindow: Boolean(schedule) });
+      const scheduleLabel = !schedule ? 'No timetable window now' : auth.configured ? `${(schedule as typeof liveSlots[number]).displayTitle} · ${(schedule as typeof liveSlots[number]).startsAt}–${(schedule as typeof liveSlots[number]).endsAt}` : `${(schedule as { title: string; start: string; end: string }).title} · ${(schedule as { start: string }).start}–${(schedule as { end: string }).end}`;
+      await recordAttendanceScan({ actorId, classCode: qr.classCode, token: qr.token, schedule: scheduleLabel, inWindow: Boolean(schedule) });
       setResult(qr);
       setScanning(false);
     } catch (error) { Alert.alert('Invalid QR', error instanceof Error ? error.message : 'Scan the live classroom attendance QR.'); }
