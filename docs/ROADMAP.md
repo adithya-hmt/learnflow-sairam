@@ -9,9 +9,9 @@
 ## Phase 1 — connected pilot (implemented locally; deployment pending)
 
 - Supabase email authentication, profile-driven roles, typed repositories, learning/video/progress flows, notifications, attendance summaries, and the native QR confirmation bridge are implemented locally.
-- SQLite assignment drafts replay when connectivity returns; unsupported mutations fail closed and remain queued.
-- Apply both migrations to the intended Supabase project, assign real departments/courses, and run Android smoke tests. Remote push delivery, quizzes, social interaction, and staff/mentor workspaces remain deferred.
-- Run Android device smoke tests and live RLS policy tests for all six roles before the college pilot.
+- SQLite assignment drafts replay when connectivity returns; unsupported, invalid, or cross-account mutations fail closed into local quarantine.
+- Apply the pending timestamped pilot migration and idempotent seed to the intended Supabase project, then run Android smoke tests. Remote push delivery, quizzes, social interaction, and staff/mentor workspaces remain deferred.
+- Run Android device smoke tests and the student-pilot RLS matrix before the college pilot; the full six-role product matrix remains later work.
 
 ## Phase 2 — campus collaboration (deferred)
 
