@@ -47,13 +47,13 @@ where lower(p.email) = 'secl25cs08@sairamtap.edu.in' and p.role = 'student'
 on conflict (course_id, student_id) do update set status = 'active';
 
 insert into public.attendance_summaries (student_id, course_id, course_code, percentage, source, source_at)
-select p.id, c.id, null, v.percentage, 'EDUMATE', '2026-08-06 16:25:00+05:30'::timestamptz
+select p.id, c.id, v.code, v.percentage, 'EDUMATE', '2026-08-06 16:25:00+05:30'::timestamptz
 from public.profiles p cross join (values
   ('20CSTP501',90::numeric),('24AIEL503',90),('24CSID501',100),('24CSPW501',95.12),('24ITEL516',83.33),
   ('24ITPC501',86.96),('24ITPL501',80),('24MGMC501',100),('24CSEL503',75)
 ) v(code, percentage) join public.courses c on c.code = v.code
 where lower(p.email) = 'secl25cs08@sairamtap.edu.in' and p.role = 'student'
-on conflict (student_id, course_id) where course_id is not null do update set percentage = excluded.percentage, source = excluded.source, source_at = excluded.source_at;
+on conflict (student_id, course_id) where course_id is not null do update set course_code = excluded.course_code, percentage = excluded.percentage, source = excluded.source, source_at = excluded.source_at;
 insert into public.attendance_summaries (student_id, course_code, percentage, source, source_at)
 select id, 'MC', 50, 'EDUMATE', '2026-08-06 16:25:00+05:30'::timestamptz from public.profiles where lower(email) = 'secl25cs08@sairamtap.edu.in' and role = 'student'
 on conflict (student_id, course_code) where course_id is null and course_code is not null do update set percentage = excluded.percentage, source = excluded.source, source_at = excluded.source_at;
