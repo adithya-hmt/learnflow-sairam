@@ -13,8 +13,12 @@ export async function syncOutbox(): Promise<SyncResult> {
   let synced = 0;
   let firstError: string | undefined;
   for (const item of mutationsForActor(items, user.id)) {
+    let validationError: string | undefined;
+    if (item.action !== 'upsert' || !['submission', 'lesson_progress'].includes(item.entity)) validationError = `Unsupported offline operation: ${item.entity}/${item.action}`;
+    if (item.entity === 'submission' && (!String(item.payload.assignmentId ?? '') || typeof (item.payload.content ?? item.payload.notes ?? '') !== 'string')) validationError = 'Submission draft is incomplete.';
+    if (item.entity === 'lesson_progress' && (!String(item.payload.lesson_id ?? '') || !Number.isFinite(Number(item.payload.position_seconds)))) validationError = 'Lesson progress is incomplete.';
+    if (validationError) { await quarantineMutation(item, validationError); firstError ??= validationError; continue; }
     try {
-      if (item.action !== 'upsert' || !['submission', 'lesson_progress'].includes(item.entity)) throw new Error(`Unsupported offline operation: ${item.entity}/${item.action}`);
       if (item.entity === 'submission') {
         const assignmentId = String(item.payload.assignmentId ?? '');
         const content = String(item.payload.content ?? item.payload.notes ?? '');
@@ -32,7 +36,6 @@ export async function syncOutbox(): Promise<SyncResult> {
       synced += 1;
     } catch (error) {
       firstError ??= error instanceof Error ? error.message : 'Sync failed.';
-      await quarantineMutation(item, firstError);
     }
   }
   return { synced, pending: (await queuedMutations()).length, error: firstError };

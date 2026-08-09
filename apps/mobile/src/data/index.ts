@@ -145,7 +145,7 @@ export async function saveSubmissionDraft(assignmentId: string, content: string)
   if (error) { if (isNetworkError(error)) { await queueMutation({ id: mutationId(), actorId: id, entity: 'submission', action: 'upsert', payload: { assignmentId, content } }); return { offline: true }; } throw error; }
   return { offline: false };
 }
-export const restoreSubmissionDraft = (assignmentId: string, studentId?: string) => studentId ? readDraft(studentId, assignmentId) : getCurrentProfile().then(profile => profile ? readDraft(profile.id, assignmentId) : null);
+export const restoreSubmissionDraft = async (assignmentId: string) => { const profile = await getCurrentProfile(); return profile ? readDraft(profile.id, assignmentId) : null; };
 export async function submitAssignment(assignmentId: string, content: string) {
   if (!supabase) throw new Error('Connect Supabase before submitting an assignment.');
   const { data: { user } } = await supabase.auth.getUser();
