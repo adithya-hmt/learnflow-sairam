@@ -6,12 +6,13 @@
 - Supabase client lifecycle, roles/RLS migration, seed data, SQLite outbox, and social/hardware adapter contracts.
 - Strict type checking and domain boundary tests.
 
-## Phase 1 — connected pilot (implemented locally; deployment pending)
+## Phase 1 — Section D connected pilot (implemented and deployed)
 
-- Supabase email authentication, profile-driven roles, typed repositories, learning/video/progress flows, notifications, attendance summaries, and the native QR confirmation bridge are implemented locally.
+- Supabase email/Google authentication, profile-driven student access, typed repositories, timetable and attendance summaries, learning/progress flows, notifications, and the native QR confirmation bridge are implemented.
 - SQLite assignment drafts replay when connectivity returns; unsupported, invalid, or cross-account mutations fail closed into local quarantine.
-- Apply the pending timestamped pilot migration and idempotent seed to the intended Supabase project, then run Android smoke tests. Remote push delivery, quizzes, social interaction, and staff/mentor workspaces remain deferred.
-- Run Android device smoke tests and the student-pilot RLS matrix before the college pilot; the full six-role product matrix remains later work.
+- The forward pilot migrations and idempotent Section D seed are deployed to the configured Supabase project; local and remote student-pilot RLS smoke tests pass.
+- The standalone arm64 Android 1.2.0 APK is built, signed with the existing pilot debug certificate, installed, and smoke-tested with the persisted student session. Fresh interactive sign-in, offline rendering behind the device lock screen, and mutation screens that require real faculty assignments/lessons/notifications remain device follow-ups.
+- Remote push delivery, quizzes, social interaction, staff/mentor workspaces, and the full six-role product matrix remain deferred.
 
 ## Phase 2 — campus collaboration (deferred)
 
