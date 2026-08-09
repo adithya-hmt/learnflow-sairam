@@ -3,8 +3,9 @@ import { expect, jest, test, beforeEach } from '@jest/globals';
 const mockRows: Record<string, unknown[]> = {};
 const mockIn = jest.fn();
 const mockSupabase = { auth: { getSession: jest.fn(), getUser: jest.fn() }, from: jest.fn() };
+let mockConfigured: any = mockSupabase;
 const mockCache = { cacheValue: jest.fn(), readCache: jest.fn(), removeCache: jest.fn(), queueMutation: jest.fn(), readDraft: jest.fn(), saveDraft: jest.fn() };
-jest.mock('../lib/supabase', () => ({ get supabase() { return mockSupabase; } }));
+jest.mock('../lib/supabase', () => ({ get supabase() { return mockConfigured; } }));
 jest.mock('../lib/offline', () => ({ cacheValue: (...args: unknown[]) => mockCache.cacheValue(...args), readCache: (...args: unknown[]) => mockCache.readCache(...args), removeCache: (...args: unknown[]) => mockCache.removeCache(...args), queueMutation: (...args: unknown[]) => mockCache.queueMutation(...args), readDraft: (...args: unknown[]) => mockCache.readDraft(...args), saveDraft: (...args: unknown[]) => mockCache.saveDraft(...args) }));
 
 function query(table: string) {
@@ -14,10 +15,10 @@ function query(table: string) {
 }
 (mockSupabase.from as any).mockImplementation((table: string) => ({ select: () => query(table), update: () => query(table), upsert: () => query(table) }));
 
-import { getAssignments, getAttendanceSummaries, getCurrentProfile, getTimetable, restoreSubmissionDraft, saveSubmissionDraft, submitAssignment } from './index';
+import { getAssignments, getAttendanceSummaries, getCurrentProfile, getTimetable, restoreSubmissionDraft, saveLessonProgress, saveSubmissionDraft, submitAssignment } from './index';
 
 const profile = { id: 'student-a', full_name: 'A', email: 'a@example.com', role: 'student', department: 'CSE', year_of_study: 3, semester: 5, section: 'D' };
-beforeEach(() => { Object.keys(mockRows).forEach(key => delete mockRows[key]); mockIn.mockClear(); (mockSupabase.auth.getSession as any).mockResolvedValue({ data: { session: { user: { id: 'student-a' } } } }); });
+beforeEach(() => { mockConfigured = mockSupabase; Object.keys(mockRows).forEach(key => delete mockRows[key]); mockIn.mockClear(); (mockSupabase.auth.getSession as any).mockResolvedValue({ data: { session: { user: { id: 'student-a' } } } }); });
 
 test('maps timetable and attendance rows using the pilot schema', async () => {
   mockRows.profiles = [profile];
@@ -61,4 +62,24 @@ test('draft restoration reads only the current profile account', async () => {
 test('final submission rejects when there is no authenticated user', async () => {
   (mockSupabase.auth.getUser as any).mockResolvedValueOnce({ data: { user: null } });
   await expect(submitAssignment('assignment-a', 'answer')).rejects.toThrow('Sign in');
+});
+
+test('demo lesson progress queues an account-bound mutation', async () => {
+  mockConfigured = null;
+  mockRows.profiles = [profile];
+  await expect(saveLessonProgress('lesson-a', 12)).resolves.toEqual({ offline: true });
+  expect(mockCache.queueMutation).toHaveBeenCalledWith(expect.objectContaining({ actorId: 'demo-student', entity: 'lesson_progress' }));
+});
+
+test('connected lesson progress queues a network TypeError', async () => {
+  (mockSupabase.auth.getUser as any).mockResolvedValue({ data: { user: { id: 'student-a' } } });
+  (mockSupabase.from as any).mockImplementationOnce(() => ({ upsert: async () => { throw new TypeError('Network request failed'); } }));
+  await expect(saveLessonProgress('lesson-a', 12)).resolves.toEqual({ offline: true });
+  expect(mockCache.queueMutation).toHaveBeenCalledWith(expect.objectContaining({ entity: 'lesson_progress', actorId: 'student-a' }));
+});
+
+test('final submission preserves Supabase errors', async () => {
+  (mockSupabase.auth.getUser as any).mockResolvedValue({ data: { user: { id: 'student-a' } } });
+  (mockSupabase.from as any).mockImplementationOnce(() => ({ upsert: async () => ({ error: new Error('server rejected') }) }));
+  await expect(submitAssignment('assignment-a', 'answer')).rejects.toThrow('server rejected');
 });
