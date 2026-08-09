@@ -68,19 +68,3 @@ with milestone(title, description, kind, starts_at, ends_at) as (values
 insert into public.calendar_events (title, description, kind, starts_at, ends_at)
 select title, description, kind, starts_at, ends_at from milestone m
 where not exists (select 1 from public.calendar_events e where e.title = m.title and e.starts_at = m.starts_at);
-
-do $$
-declare p uuid;
-begin
-  select id into p from public.profiles order by created_at limit 1;
-  if p is not null then
-    insert into public.social_posts (author_id, body, club_name)
-    select p, 'Welcome to the LearnFlow community feed.', 'LearnFlow'
-    where (select role from public.profiles where id = p) in ('club_coordinator','department_admin','super_admin')
-    and not exists (select 1 from public.social_posts where body = 'Welcome to the LearnFlow community feed.');
-    insert into public.achievements (student_id, slug, title, description)
-    select p, 'first-login', 'First steps', 'Started your LearnFlow journey.'
-    where (select role from public.profiles where id = p) = 'student'
-    on conflict (student_id, slug) do nothing;
-  end if;
-end $$;
