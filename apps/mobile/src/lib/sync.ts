@@ -13,12 +13,20 @@ export async function syncOutbox(): Promise<SyncResult> {
   let firstError: string | undefined;
   for (const item of mutationsForActor(items, user.id)) {
     try {
-      if (item.entity !== 'submission' || item.action !== 'upsert') throw new Error(`Unsupported offline operation: ${item.entity}/${item.action}`);
-      const assignmentId = String(item.payload.assignmentId ?? '');
-      const content = String(item.payload.notes ?? '');
-      if (!assignmentId || !content) throw new Error('Submission draft is incomplete.');
-      const { error } = await supabase.from('submissions').upsert({ assignment_id: assignmentId, student_id: user.id, content, status: 'draft' }, { onConflict: 'assignment_id,student_id' });
-      if (error) throw error;
+      if (item.action !== 'upsert' || !['submission', 'lesson_progress'].includes(item.entity)) throw new Error(`Unsupported offline operation: ${item.entity}/${item.action}`);
+      if (item.entity === 'submission') {
+        const assignmentId = String(item.payload.assignmentId ?? '');
+        const content = String(item.payload.content ?? item.payload.notes ?? '');
+        if (!assignmentId) throw new Error('Submission draft is incomplete.');
+        const { error } = await supabase.from('submissions').upsert({ assignment_id: assignmentId, student_id: user.id, content, status: 'draft' }, { onConflict: 'assignment_id,student_id' });
+        if (error) throw error;
+      } else {
+        const lessonId = String(item.payload.lesson_id ?? '');
+        const positionSeconds = Number(item.payload.position_seconds);
+        if (!lessonId || !Number.isFinite(positionSeconds)) throw new Error('Lesson progress is incomplete.');
+        const { error } = await supabase.from('lesson_progress').upsert({ ...item.payload, lesson_id: lessonId, student_id: user.id, position_seconds: Math.max(0, Math.floor(positionSeconds)) }, { onConflict: 'lesson_id,student_id' });
+        if (error) throw error;
+      }
       await completeMutation(item.id);
       synced += 1;
     } catch (error) {

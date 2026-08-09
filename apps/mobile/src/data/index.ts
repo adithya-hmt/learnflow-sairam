@@ -1,25 +1,29 @@
 import { assignments as demoAssignments, courses as demoCourses, events as demoEvents, eventTimeToday, posts as demoPosts } from '../domain';
 import { supabase } from '../lib/supabase';
 import type { Role } from '../domain';
-import { cacheValue, readCache, removeCache } from '../lib/offline';
+import { cacheValue, readCache, removeCache, queueMutation, readDraft, saveDraft } from '../lib/offline';
 
 export type Profile = { id: string; fullName: string; email: string | null; rollNo: string | null; role: Role; department: string | null; yearOfStudy: number | null; semester: number | null; section: string | null; avatarUrl: string | null };
 export type Course = { id: string; code: string; title: string; description: string; department: string | null; facultyId: string | null; status: string; startsOn: string | null; endsOn: string | null };
 export type Enrollment = { courseId: string; studentId: string; status: string; enrolledAt: string };
 export type Lesson = { id: string; courseId: string; title: string; summary: string; position: number; videoUrl: string | null; resourceUrls: string[]; published: boolean };
-export type Assignment = { id: string; courseId: string | null; course: string; title: string; instructions: string; dueAt: string | null; maxScore: number; status: string };
+export type AssignmentStatus = 'pending' | 'draft' | 'submitted' | 'graded' | 'late';
+export type Assignment = { id: string; courseId: string | null; course: string; title: string; instructions: string; dueAt: string | null; maxScore: number; status: AssignmentStatus };
 export type CalendarEvent = { id: string; title: string; description: string; kind: string; startsAt: string; endsAt: string | null; location: string | null; courseId: string | null };
 export type Notification = { id: string; title: string; body: string; data: Record<string, unknown>; readAt: string | null; createdAt: string };
 export type SocialPost = { id: string; authorId: string; body: string; mediaUrls: string[]; clubName: string | null; publishedAt: string };
 export type AttendanceRecord = { id: string; eventId: string | null; courseId: string | null; studentId: string; attendedAt: string; method: string; deviceRef: string | null };
 export type Achievement = { id: string; studentId: string; slug: string; title: string; description: string; awardedAt: string; metadata: Record<string, unknown> };
 export type CourseProgress = { courseId: string; completed: number; total: number; percent: number };
+export type TimetableSlot = { id: string; department: string; yearOfStudy: number; semester: number; section: string; weekday: number; period: number; courseId: string | null; courseCode: string; displayTitle: string; startsAt: string; endsAt: string; room: string | null };
+export type AttendanceSummary = { id: string; studentId: string; courseId: string | null; courseCode: string | null; percentage: number; heldCount: number | null; attendedCount: number | null; source: string; sourceAt: string };
 
 const emptyProfile: Profile = { id: 'demo-student', fullName: 'ADITHYA S', email: 'secl25cs08@sairamtap.edu.in', rollNo: 'SECL25CS08', role: 'student', department: 'Computer Science and Engineering', yearOfStudy: 3, semester: 5, section: 'D', avatarUrl: null };
 const text = (value: unknown, fallback = '') => typeof value === 'string' ? value : fallback;
 const nullableText = (value: unknown) => typeof value === 'string' ? value : null;
 const record = (value: unknown): Record<string, unknown> => value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {};
 const strings = (value: unknown) => Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : [];
+const related = (value: unknown): Record<string, unknown> => Array.isArray(value) ? record(value[0]) : record(value);
 const isNetworkError = (error: unknown) => error instanceof TypeError && /network|fetch/i.test(error.message);
 
 async function rows<T>(table: string, select = '*', configure?: (query: any) => any, cacheName = table): Promise<T[]> {
@@ -69,7 +73,12 @@ export async function getCurrentRole(): Promise<Role | null> {
 
 export async function getCourses(): Promise<Course[]> {
   if (!supabase) return demoCourses.map(course => ({ id: course.id, code: course.code, title: course.title, description: '', department: null, facultyId: null, status: 'published', startsOn: null, endsOn: null }));
-  const data = await rows<any>('courses', '*', query => query.order('title'));
+  const profile = await getCurrentProfile();
+  if (!profile) return [];
+  const enrollmentRows = await rows<any>('enrollments', 'course_id,status', query => query.eq('student_id', profile.id).eq('status', 'active'), `enrollments:${profile.id}`);
+  const ids = enrollmentRows.map(row => row.course_id).filter(Boolean);
+  if (!ids.length) return [];
+  const data = await rows<any>('courses', '*', query => query.in('id', ids).eq('status', 'published').order('title'));
   return data.map(row => ({ id: row.id, code: text(row.code), title: text(row.title), description: text(row.description), department: nullableText(row.department), facultyId: nullableText(row.faculty_id), status: text(row.status), startsOn: nullableText(row.starts_on), endsOn: nullableText(row.ends_on) }));
 }
 
@@ -94,9 +103,72 @@ export async function getLesson(id: string): Promise<Lesson | null> {
 }
 
 export async function getAssignments(): Promise<Assignment[]> {
-  if (!supabase) return demoAssignments.map(item => ({ id: item.id, courseId: null, course: item.course, title: item.title, instructions: '', dueAt: null, maxScore: 100, status: item.status }));
+  if (!supabase) return demoAssignments.map(item => ({ id: item.id, courseId: null, course: item.course, title: item.title, instructions: '', dueAt: null, maxScore: 100, status: item.status === 'Draft saved' ? 'draft' : 'pending' as AssignmentStatus }));
+  const profile = await getCurrentProfile();
+  if (!profile) return [];
   const data = await rows<any>('assignments', '*, courses(title)', query => query.order('due_at', { ascending: true, nullsFirst: false }));
-  return data.map(row => ({ id: row.id, courseId: nullableText(row.course_id), course: text(row.courses?.title), title: text(row.title), instructions: text(row.instructions), dueAt: nullableText(row.due_at), maxScore: Number(row.max_score) || 0, status: 'Pending' }));
+  const submissions = await rows<any>('submissions', 'assignment_id,status,score', query => query.eq('student_id', profile.id), `submissions:${profile.id}`);
+  const byAssignment = new Map(submissions.map(row => [row.assignment_id, row]));
+  return data.map(row => { const submission = byAssignment.get(row.id); const rawStatus = text(submission?.status, 'pending'); const status: AssignmentStatus = ['draft', 'submitted', 'graded', 'late'].includes(rawStatus) ? rawStatus as AssignmentStatus : 'pending'; return { id: row.id, courseId: nullableText(row.course_id), course: text(related(row.courses).title), title: text(row.title), instructions: text(row.instructions), dueAt: nullableText(row.due_at), maxScore: Number(row.max_score) || 0, status }; });
+}
+
+export async function getTimetable(profile?: Profile): Promise<TimetableSlot[]> {
+  if (!supabase) return [];
+  const current = profile ?? await getCurrentProfile();
+  if (!current || !current.department || current.yearOfStudy == null || current.semester == null || !current.section) return [];
+  const data = await rows<any>('timetable_slots', '*', query => query.eq('department', current.department).eq('year_of_study', current.yearOfStudy).eq('semester', current.semester).eq('section', current.section).order('weekday').order('period'), `timetable:${current.id}`);
+  return data.map(row => ({ id: row.id, department: text(row.department), yearOfStudy: Number(row.year_of_study), semester: Number(row.semester), section: text(row.section), weekday: Number(row.weekday), period: Number(row.period), courseId: nullableText(row.course_id), courseCode: text(row.course_code), displayTitle: text(row.display_title), startsAt: text(row.starts_at), endsAt: text(row.ends_at), room: nullableText(row.room) }));
+}
+
+export async function getAttendanceSummaries(studentId?: string): Promise<AttendanceSummary[]> {
+  const id = studentId ?? (await getCurrentProfile())?.id;
+  if (!supabase || !id) return [];
+  const data = await rows<any>('attendance_summaries', '*', query => query.eq('student_id', id).order('course_code'), `attendance-summaries:${id}`);
+  return data.map(row => ({ id: row.id, studentId: row.student_id, courseId: nullableText(row.course_id), courseCode: nullableText(row.course_code), percentage: Number(row.percentage) || 0, heldCount: row.held_count == null ? null : Number(row.held_count), attendedCount: row.attended_count == null ? null : Number(row.attended_count), source: text(row.source), sourceAt: text(row.source_at) }));
+}
+
+const mutationId = () => `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+export async function saveSubmissionDraft(assignmentId: string, content: string, studentId?: string) {
+  const id = studentId ?? (await getCurrentProfile())?.id;
+  if (!id) throw new Error('Sign in to save a draft.');
+  const updatedAt = new Date().toISOString();
+  await saveDraft({ actorId: id, assignmentId, content, updatedAt });
+  if (!supabase) return { offline: true };
+  const { error } = await supabase.from('submissions').upsert({ assignment_id: assignmentId, student_id: id, content, status: 'draft' }, { onConflict: 'assignment_id,student_id' });
+  if (error) { if (isNetworkError(error)) { await queueMutation({ id: mutationId(), actorId: id, entity: 'submission', action: 'upsert', payload: { assignmentId, content } }); return { offline: true }; } throw error; }
+  return { offline: false };
+}
+export const restoreSubmissionDraft = (assignmentId: string, studentId?: string) => studentId ? readDraft(studentId, assignmentId) : getCurrentProfile().then(profile => profile ? readDraft(profile.id, assignmentId) : null);
+export async function submitAssignment(assignmentId: string, content: string) {
+  if (!supabase) throw new Error('Connect Supabase before submitting an assignment.');
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Sign in before submitting an assignment.');
+  const { error } = await supabase.from('submissions').upsert({ assignment_id: assignmentId, student_id: user.id, content, status: 'submitted', submitted_at: new Date().toISOString() }, { onConflict: 'assignment_id,student_id' });
+  if (error) throw error;
+}
+export async function saveLessonProgress(lessonId: string, positionSeconds: number, completedAt?: string | null) {
+  if (!supabase) {
+    const id = (await getCurrentProfile())?.id;
+    if (!id) throw new Error('Sign in before saving lesson progress.');
+    await queueMutation({ id: mutationId(), actorId: id, entity: 'lesson_progress', action: 'upsert', payload: { lesson_id: lessonId, student_id: id, position_seconds: Math.max(0, Math.floor(positionSeconds)), completed_at: completedAt ?? null } });
+    return { offline: true };
+  }
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Sign in before saving lesson progress.');
+  const payload = { lesson_id: lessonId, student_id: user.id, position_seconds: Math.max(0, Math.floor(positionSeconds)), completed_at: completedAt ?? null };
+  try {
+    const { error } = await supabase.from('lesson_progress').upsert(payload, { onConflict: 'lesson_id,student_id' });
+    if (error) throw error;
+  } catch (error) {
+    if (isNetworkError(error)) { await queueMutation({ id: mutationId(), actorId: user.id, entity: 'lesson_progress', action: 'upsert', payload }); return { offline: true }; }
+    throw error;
+  }
+  return { offline: false };
+}
+export async function markNotificationRead(notificationId: string) {
+  if (!supabase) throw new Error('Connect Supabase before updating notifications.');
+  const { data: { user } } = await supabase.auth.getUser(); if (!user) throw new Error('Sign in before updating notifications.');
+  const { error } = await supabase.from('notifications').update({ read_at: new Date().toISOString() }).eq('id', notificationId).eq('recipient_id', user.id); if (error) throw error;
 }
 
 export async function getCalendarEvents(): Promise<CalendarEvent[]> {
@@ -157,6 +229,8 @@ export const queryKeys = {
   attendance: (studentId?: string) => ['learnflow', 'attendance', studentId ?? 'current'] as const,
   achievements: (studentId?: string) => ['learnflow', 'achievements', studentId ?? 'current'] as const,
   progress: ['learnflow', 'progress'] as const,
+  timetable: (studentId?: string) => ['learnflow', 'timetable', studentId ?? 'current'] as const,
+  attendanceSummaries: (studentId?: string) => ['learnflow', 'attendance-summaries', studentId ?? 'current'] as const,
 };
 
-export const repository = { getCurrentProfile, getCurrentRole, getCourses, getEnrollments, getLessons, getLesson, getAssignments, getCalendarEvents, getNotifications, getSocialPosts, getAttendance, getAchievements, getCourseProgress };
+export const repository = { getCurrentProfile, getCurrentRole, getCourses, getEnrollments, getLessons, getLesson, getAssignments, getCalendarEvents, getNotifications, getSocialPosts, getAttendance, getAchievements, getCourseProgress, getTimetable, getAttendanceSummaries, saveSubmissionDraft, submitAssignment, saveLessonProgress, markNotificationRead, restoreSubmissionDraft };
