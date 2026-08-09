@@ -2,6 +2,12 @@
 -- Remove the exact legacy demo rows so an older seed cannot leak fabricated data into the connected pilot.
 delete from public.achievements where slug = 'first-login' and title = 'First steps' and description = 'Started your LearnFlow journey.';
 delete from public.social_posts where body = 'Welcome to the LearnFlow community feed.' and club_name = 'LearnFlow';
+delete from public.lessons l using public.courses c
+where l.course_id = c.id and c.code = 'CS101' and l.position = 1
+  and l.title = 'Welcome to LearnFlow' and l.summary = 'Orientation, outcomes, and how to study offline.';
+delete from public.calendar_events e using public.courses c
+where e.course_id = c.id and c.code = 'CS101' and e.title = 'CS101 orientation'
+  and e.description = 'Bring your student ID for attendance.';
 update public.courses set status = 'archived' where code = 'CS101';
 
 insert into public.courses (code, title, description, department, status, starts_on, ends_on) values
