@@ -24,6 +24,11 @@ export async function queuedMutations(): Promise<QueuedMutation[]> {
   return rows.filter((row) => row.actor_id).map((row) => mutationSchema.parse({ id: row.id, actorId: row.actor_id, entity: row.entity, action: row.action, payload: JSON.parse(row.payload) }));
 }
 export async function completeMutation(id: string) { await (await db()).runAsync('DELETE FROM outbox WHERE id = ?', id); }
+export async function quarantineMutation(item: QueuedMutation, reason: string) {
+  const database = await db();
+  await database.runAsync('INSERT OR REPLACE INTO outbox_quarantine (id, entity, action, payload, created_at, reason) VALUES (?, ?, ?, ?, ?, ?)', item.id, item.entity, item.action, JSON.stringify(item.payload), new Date().toISOString(), `${reason}; actor=${item.actorId}`);
+  await database.runAsync('DELETE FROM outbox WHERE id = ?', item.id);
+}
 export async function pendingCount() { return (await (await db()).getFirstAsync<{ count: number }>('SELECT COUNT(*) AS count FROM outbox'))?.count ?? 0; }
 export async function cacheValue(key: string, value: unknown) { await (await db()).runAsync('INSERT OR REPLACE INTO cache VALUES (?, ?, ?)', key, JSON.stringify(value), new Date().toISOString()); }
 export async function readCache<T>(key: string): Promise<T | null> { const row = await (await db()).getFirstAsync<{ value: string }>('SELECT value FROM cache WHERE key = ?', key); return row ? JSON.parse(row.value) as T : null; }

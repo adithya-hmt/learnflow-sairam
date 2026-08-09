@@ -106,7 +106,14 @@ export async function getAssignments(): Promise<Assignment[]> {
   if (!supabase) return demoAssignments.map(item => ({ id: item.id, courseId: null, course: item.course, title: item.title, instructions: '', dueAt: null, maxScore: 100, status: item.status === 'Draft saved' ? 'draft' : 'pending' as AssignmentStatus }));
   const profile = await getCurrentProfile();
   if (!profile) return [];
-  const data = await rows<any>('assignments', '*, courses(title)', query => query.order('due_at', { ascending: true, nullsFirst: false }));
+  let configure = (query: any) => query.order('due_at', { ascending: true, nullsFirst: false });
+  if (profile.role === 'student') {
+    const enrollmentRows = await rows<any>('enrollments', 'course_id', query => query.eq('student_id', profile.id).eq('status', 'active'), `enrollments:${profile.id}`);
+    const ids = enrollmentRows.map(row => row.course_id).filter(Boolean);
+    if (!ids.length) return [];
+    configure = (query: any) => query.in('course_id', ids).order('due_at', { ascending: true, nullsFirst: false });
+  }
+  const data = await rows<any>('assignments', '*, courses(title)', configure);
   const submissions = await rows<any>('submissions', 'assignment_id,status,score', query => query.eq('student_id', profile.id), `submissions:${profile.id}`);
   const byAssignment = new Map(submissions.map(row => [row.assignment_id, row]));
   return data.map(row => { const submission = byAssignment.get(row.id); const rawStatus = text(submission?.status, 'pending'); const status: AssignmentStatus = ['draft', 'submitted', 'graded', 'late'].includes(rawStatus) ? rawStatus as AssignmentStatus : 'pending'; return { id: row.id, courseId: nullableText(row.course_id), course: text(related(row.courses).title), title: text(row.title), instructions: text(row.instructions), dueAt: nullableText(row.due_at), maxScore: Number(row.max_score) || 0, status }; });
@@ -128,8 +135,8 @@ export async function getAttendanceSummaries(studentId?: string): Promise<Attend
 }
 
 const mutationId = () => `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-export async function saveSubmissionDraft(assignmentId: string, content: string, studentId?: string) {
-  const id = studentId ?? (await getCurrentProfile())?.id;
+export async function saveSubmissionDraft(assignmentId: string, content: string) {
+  const id = (await getCurrentProfile())?.id;
   if (!id) throw new Error('Sign in to save a draft.');
   const updatedAt = new Date().toISOString();
   await saveDraft({ actorId: id, assignmentId, content, updatedAt });

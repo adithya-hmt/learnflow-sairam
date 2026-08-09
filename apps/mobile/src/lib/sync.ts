@@ -1,14 +1,15 @@
-import { completeMutation, queuedMutations, type QueuedMutation } from './offline';
+import { completeMutation, quarantineMutation, queuedMutations, type QueuedMutation } from './offline';
 import { supabase } from './supabase';
 
 export type SyncResult = { synced: number; pending: number; error?: string };
 export const mutationsForActor = (items: QueuedMutation[], actorId: string) => items.filter((item) => item.actorId === actorId);
 
 export async function syncOutbox(): Promise<SyncResult> {
-  if (!supabase) return { synced: 0, pending: 0 };
+  const items = await queuedMutations();
+  if (!supabase) return { synced: 0, pending: items.length };
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { synced: 0, pending: (await queuedMutations()).length, error: 'Sign in to sync.' };
-  const items = await queuedMutations();
+  for (const item of items.filter((candidate) => candidate.actorId !== user.id)) await quarantineMutation(item, 'cross_account');
   let synced = 0;
   let firstError: string | undefined;
   for (const item of mutationsForActor(items, user.id)) {
@@ -31,6 +32,7 @@ export async function syncOutbox(): Promise<SyncResult> {
       synced += 1;
     } catch (error) {
       firstError ??= error instanceof Error ? error.message : 'Sync failed.';
+      await quarantineMutation(item, firstError);
     }
   }
   return { synced, pending: (await queuedMutations()).length, error: firstError };
