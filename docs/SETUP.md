@@ -58,7 +58,7 @@ EXPO_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_replace_me
 ```
 
-Only the Supabase project URL and publishable key may be exposed to the mobile bundle. Secret/service-role keys, database passwords, OAuth client secrets, signing keys, webhook secrets, and hardware credentials belong server-side and must never use the `EXPO_PUBLIC_` prefix. Apply `supabase/migrations/001_learnflow.sql`, then `002_product_hardening.sql`, then `003_sairam_workspace.sql`, and finally `supabase/seed.sql` in the intended LearnFlow project.
+Only the Supabase project URL and publishable key may be exposed to the mobile bundle. Secret/service-role keys, database passwords, OAuth client secrets, signing keys, webhook secrets, and hardware credentials belong server-side and must never use the `EXPO_PUBLIC_` prefix. Apply the migrations in `supabase/migrations/` in filename order, then `supabase/seed.sql` in the intended LearnFlow project.
 
 With these values present, LearnFlow requires Supabase authentication and protects the tab routes. Without them, it stays in the documented demo mode.
 

@@ -6,6 +6,7 @@ import { parseAttendanceQr } from '@/attendance-qr';
 import { updateAttendanceReceipt } from '@/attendance-receipts';
 import { useProfile } from '@/data/hooks';
 import { colors } from '@/theme';
+import { useAuth } from '@/auth';
 
 type BridgeResult = { status: 'confirmed' | 'rejected' | 'unverified' | 'cancelled'; message: string };
 const attendanceBridge = NativeModules.AttendanceBridge as { open(url: string, studentId: string, classCode: string): Promise<BridgeResult> } | undefined;
@@ -13,12 +14,14 @@ const attendanceBridge = NativeModules.AttendanceBridge as { open(url: string, s
 export default function AttendanceSubmit() {
   const { url, classCode } = useLocalSearchParams<{ url: string; classCode: string }>();
   const { data: profile } = useProfile();
+  const auth = useAuth();
   const studentId = profile?.rollNo || '';
+  const actorId = auth.configured ? (profile?.id || auth.session?.user.id) : 'demo-student';
   const [status, setStatus] = useState('Opening the secure attendance screen…');
   const [tone, setTone] = useState<'blue' | 'green' | 'coral' | 'gold'>('blue');
 
   useEffect(() => {
-    if (!url || !attendanceBridge || !studentId) { setStatus(!studentId ? 'Your profile does not have an SCC ID yet.' : 'Automatic attendance is available in the native Android app.'); setTone('coral'); return; }
+    if (!url || !attendanceBridge || !studentId || !actorId) { setStatus(!studentId ? 'Your profile does not have an SCC ID yet.' : !actorId ? 'Your signed-in profile is still loading.' : 'Automatic attendance is available in the native Android app.'); setTone('coral'); return; }
     let active = true;
     try {
       const qr = parseAttendanceQr(url);
@@ -26,7 +29,7 @@ export default function AttendanceSubmit() {
         if (!active) return;
         setStatus(result.message);
         setTone(result.status === 'confirmed' ? 'green' : result.status === 'rejected' ? 'coral' : 'gold');
-        if (result.status === 'confirmed' || result.status === 'rejected' || result.status === 'unverified') await updateAttendanceReceipt(qr.token, result.status);
+        if (result.status === 'confirmed' || result.status === 'rejected' || result.status === 'unverified') await updateAttendanceReceipt(actorId, qr.token, result.status);
       }).catch((error: unknown) => {
         if (!active) return;
         setStatus(error instanceof Error ? error.message : 'The secure attendance screen could not be opened.');
@@ -37,7 +40,7 @@ export default function AttendanceSubmit() {
       setTone('coral');
     }
     return () => { active = false; };
-  }, [studentId, url]);
+  }, [actorId, studentId, url]);
 
   return <Screen title={`Class ${classCode || 'attendance'}`} subtitle={`Using SCC ID ${studentId}`}>
     <Card style={a.status}><Pill text={tone === 'green' ? 'CONFIRMED' : tone === 'coral' ? 'ATTENTION' : 'SECURE BRIDGE'} tone={tone} /><Text style={a.statusText}>{status}</Text></Card>

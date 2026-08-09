@@ -1,15 +1,15 @@
-# Roles and permissions
+# Roles and permissions (future policy/schema baseline)
 
-The MVP has six roles. A user may have more than one role; effective access is the union of permitted actions, constrained by department, course membership, and ownership. Role assignment must be server-side and auditable.
+The six-role matrix below documents the future policy/schema baseline. The connected pilot exercises only the student experience; staff, mentor, club, department-admin, and super-admin workspace responsibilities are not completed pilot UI. A user may have more than one role; effective access is the union of permitted actions, constrained by department, course membership, and ownership. Role assignment must be server-side and auditable.
 
 | Role | MVP responsibilities |
 | --- | --- |
-| `student` | Read enrolled courses and lessons; submit assignments; take quizzes; view own attendance, progress, achievements, calendar, notifications, downloads, and permitted social content. |
-| `faculty` | Manage owned courses and lessons; publish assignments/quizzes; grade submissions; record or correct attendance for owned course sessions; view enrolled student progress. |
-| `mentor` | View assigned mentees; add mentoring notes; view permitted progress and attendance; cannot change grades or roles. |
-| `club_coordinator` | Manage an assigned club's posts and events; moderate only that club's feed scope; cannot access academic records without another role. |
-| `department_admin` | Manage department courses, faculty assignments, calendar events, and department-level reports; cannot change global roles or read unrelated departments. |
-| `super_admin` | Manage institution-wide configuration, role assignments, integrations, moderation, and audit access. Use sparingly and log every privileged action. |
+| `student` | Read enrolled courses and lessons; submit assignments; view own published attendance summaries, progress, achievements, calendar, notifications, and local QR receipts. Quizzes, downloads, and social interaction are deferred. |
+| `faculty` | Future scoped workspace: manage owned courses/lessons, assignments, grading, and attendance corrections. Not part of the connected student pilot. |
+| `mentor` | Future scoped workspace: view assigned mentees and permitted progress/attendance. Not part of the connected student pilot. |
+| `club_coordinator` | Future baseline: manage an assigned club's posts and events; moderate only that club's feed scope; cannot access academic records without another role. |
+| `department_admin` | Future baseline: manage department courses, faculty assignments, calendar events, and department-level reports; cannot change global roles or read unrelated departments. |
+| `super_admin` | Future baseline: manage institution-wide configuration, role assignments, integrations, moderation, and audit access. Use sparingly and log every privileged action. |
 
 ## Authorization rules
 
@@ -26,4 +26,4 @@ Enforce these rules in Supabase RLS and server-side mutation paths. UI checks ar
 9. Authentication is limited to `@sairamtap.edu.in`; Google OAuth metadata never assigns a LearnFlow role.
 10. All authenticated users may read institution-wide academic calendar events, while only scoped staff policies may create or change them.
 
-The client capability map and database policies implement this baseline. The UI never substitutes for RLS; validate the policies against live authenticated users after deploying the migration.
+The client capability map and database policies define the future role baseline. The UI never substitutes for RLS; validate policies against live authenticated users after deploying the current migrations. Remote push, EDUMATE, NFC/BLE, kiosk, and automated attendance integrations remain deferred; the native QR bridge requires explicit Confirm attendance.

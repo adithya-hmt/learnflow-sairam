@@ -5,13 +5,19 @@ import { router } from 'expo-router';
 import { Button, Card, Pill, Screen, s } from '@/components';
 import { parseAttendanceQr, type AttendanceQr } from '@/attendance-qr';
 import { recordAttendanceScan } from '@/attendance-receipts';
-import { getScheduleStatus, isWeekday } from '@/studentData';
+import { useProfile } from '@/data/hooks';
+import { useTimetable } from '@/data/hooks';
+import { currentTimetableSlot } from '@/timetable';
 import { colors } from '@/theme';
+import { useAuth } from '@/auth';
 
 export default function ScanAttendance() {
   const [permission, requestPermission] = useCameraPermissions();
   const [result, setResult] = useState<AttendanceQr | null>(null);
   const [scanning, setScanning] = useState(true);
+  const { data: profile } = useProfile();
+  const { data: liveSlots = [] } = useTimetable();
+  const auth = useAuth();
   if (!permission) return null;
   if (!permission.granted) return <Screen title="Scan attendance" subtitle="Use the live QR shown in your classroom.">
     <Card><Text style={a.title}>Camera access is needed</Text><Text style={[s.body, a.body]}>LearnFlow only uses the camera to read the attendance QR. It does not record video.</Text><Button label="Allow camera" onPress={() => void requestPermission()} /></Card>
@@ -21,9 +27,10 @@ export default function ScanAttendance() {
     try {
       const qr = parseAttendanceQr(data);
       const now = new Date();
-      const day = now.toLocaleDateString('en-US', { weekday: 'long' });
-      const schedule = isWeekday(day) ? getScheduleStatus(day, now).current : null;
-      await recordAttendanceScan({ classCode: qr.classCode, token: qr.token, schedule: schedule ? `${schedule.title} · ${schedule.start}–${schedule.end}` : 'No timetable window now', inWindow: Boolean(schedule) });
+      const schedule = currentTimetableSlot(liveSlots, now);
+      const actorId = auth.configured ? (profile?.id || auth.session?.user.id) : 'demo-student';
+      if (!actorId) { Alert.alert('Profile unavailable', 'Wait for your signed-in profile to load before scanning.'); return; }
+      await recordAttendanceScan({ actorId, classCode: qr.classCode, token: qr.token, schedule: schedule ? `${schedule.displayTitle} · ${schedule.startsAt}–${schedule.endsAt}` : 'No timetable window now', inWindow: Boolean(schedule) });
       setResult(qr);
       setScanning(false);
     } catch (error) { Alert.alert('Invalid QR', error instanceof Error ? error.message : 'Scan the live classroom attendance QR.'); }

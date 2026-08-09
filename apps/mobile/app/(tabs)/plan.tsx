@@ -8,6 +8,7 @@ import { useAssignments, useEvents, useProfile, useTimetable } from '@/data/hook
 import { academicMilestones, getScheduleStatus, isSectionDStudent, isWeekday, periods, timetable, weekdays, type Weekday } from '@/studentData';
 import { colors } from '@/theme';
 import { useAuth } from '@/auth';
+import { currentTimetableSlot, nextTimetableSlot } from '@/timetable';
 
 const weekdayFor = (date: Date): Weekday | null => {
   const value = new Intl.DateTimeFormat('en-US', { weekday: 'long' }).format(date);
@@ -38,9 +39,9 @@ export default function Calendar() {
   const upcomingEvents = useMemo(() => events.filter((event) => isUpcomingEvent(event.startsAt, event.endsAt, now)), [events, now]);
   const status = currentWeekday === selected ? getScheduleStatus(selected, now) : null;
 
-  if (auth.configured) { const todaySlots = liveSlots.filter((slot) => slot.weekday === (now.getDay() || 7)); const currentSlot = todaySlots.find((slot) => now >= new Date(slot.startsAt) && now <= new Date(slot.endsAt)); const nextSlot = todaySlots.find((slot) => new Date(slot.startsAt) > now); const clockMessage = currentSlot ? `${currentSlot.courseCode} now · ${currentSlot.displayTitle}` : nextSlot ? `Next: ${nextSlot.courseCode} at ${periodTime(nextSlot.startsAt)}` : 'No current or upcoming period published for today.'; return <Screen title="My calendar" subtitle={profile?.department || 'Your live college schedule'}>
+  if (auth.configured) { const currentSlot = currentTimetableSlot(liveSlots, now); const nextSlot = nextTimetableSlot(liveSlots, now); const clockMessage = currentSlot ? `${currentSlot.courseCode} now · ${currentSlot.displayTitle}` : nextSlot ? `Next: ${nextSlot.courseCode} at ${periodTime(nextSlot.startsAt)}` : 'No current or upcoming period published for today.'; return <Screen title="My calendar" subtitle={profile?.department || 'Your live college schedule'}>
     <ClockCard now={now} message={clockMessage} />
-    <Section title="Published timetable">{liveSlots.length === 0 ? <Card><Text style={s.body}>No timetable slots are published for this profile.</Text></Card> : liveSlots.slice(0, 20).map((slot) => <Card key={slot.id}><Text style={c.title}>{slot.courseCode} · {slot.displayTitle}</Text><Text style={s.body}>{weekdays[slot.weekday - 1] || 'Day unavailable'} · {periodTime(slot.startsAt)}–{periodTime(slot.endsAt)}{slot.room ? ` · ${slot.room}` : ''}</Text></Card>)}</Section>
+    <Section title="Published timetable">{liveSlots.length === 0 ? <Card><Text style={s.body}>No timetable slots are published for this profile.</Text></Card> : liveSlots.map((slot) => <Card key={slot.id}><Text style={c.title}>{slot.courseCode} · {slot.displayTitle}</Text><Text style={s.body}>{weekdays[slot.weekday - 1] || 'Day unavailable'} · {periodTime(slot.startsAt)}–{periodTime(slot.endsAt)}{slot.room ? ` · ${slot.room}` : ''}</Text></Card>)}</Section>
     <Section title="Upcoming events">{upcomingEvents.length === 0 ? <Card><Text style={s.body}>No upcoming classes or events are currently published for this account.</Text></Card> : upcomingEvents.slice(0, 12).map((event) => <Card key={event.id}><Text style={c.title}>{event.title}</Text><Text style={s.body}>{formatDateTime(event.startsAt)} · {event.location || event.kind}</Text></Card>)}</Section>
     <Section title="Upcoming work">{assignments.length === 0 ? <Card><Text style={s.body}>No pending assignments are currently published.</Text></Card> : assignments.slice(0, 8).map((item) => <Pressable key={item.id} onPress={() => router.push(`/assignment/${item.id}`)}><Card style={c.assignment}><View style={{ flex: 1 }}><Text style={c.title}>{item.title}</Text><Text style={s.body}>{item.course} · {item.dueAt ? formatDateTime(item.dueAt) : item.status}</Text></View><Pill text={item.status} tone="gold" /></Card></Pressable>)}</Section>
   </Screen>; }

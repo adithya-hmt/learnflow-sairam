@@ -32,7 +32,7 @@ Use TanStack Query for server state, Zustand for small client/UI state, React Ho
 
 ## Relational schema
 
-The executable source of truth is `supabase/migrations/001_learnflow.sql` plus `002_product_hardening.sql`. Deploying both to a specific Supabase project remains an operator action.
+The executable source of truth is every SQL file under `supabase/migrations/`, applied in filename order. Deploying them to a specific Supabase project remains an operator action.
 
 | Table | Purpose | Key relationships |
 | --- | --- | --- |
@@ -60,7 +60,7 @@ Every user-owned row needs an `owner_id` or a membership path that can be checke
 
 ## Offline boundary
 
-Repository reads cache account-scoped courses, lessons, calendar events, attendance summaries, achievements, and progress in SQLite and falls back to those records on network failure. Assignment drafts enter an actor-bound outbox and replay only for the same signed-in account. Unsupported or cross-account mutations fail closed and stay queued. The server remains authoritative for grades, role changes, quiz scores, and attendance corrections. Quizzes, social interaction, staff/mentor workspaces, remote push delivery, EDUMATE integration, NFC/BLE, and kiosk modes are deferred; the native QR flow retains its explicit Confirm attendance boundary.
+Repository reads cache account-scoped courses, lessons, calendar events, attendance summaries, achievements, and progress in SQLite and falls back to those records on network failure. Assignment drafts enter an actor-bound active outbox and replay only for the same signed-in account; missing-actor and cross-account mutations are quarantined and removed from the active outbox, not left pending. The server remains authoritative for grades, role changes, quiz scores, and attendance corrections. Quizzes, social interaction, staff/mentor workspaces, remote push delivery, EDUMATE integration, NFC/BLE, and kiosk modes are deferred; the native QR flow retains its explicit Confirm attendance boundary.
 
 ## Hardware boundary
 

@@ -22,3 +22,9 @@ Physical Android smoke testing and live Supabase/RLS verification were not run i
 ## Commit
 
 `9378571ded12ab9162c3ca7f58f5d07d9686d555` (implementation commit)
+
+## Review follow-up
+
+- Added SQL-time parsing/current-next boundary tests, profile-scoped timetable QR windows, actor-scoped local receipts with isolation tests, explicit overall attendance handling, full weekly timetable rendering, honest connected achievements empty state, assignment invalidation, visible notification failures, and package-lock version metadata.
+- Corrected permissions scope, migration ordering, active-outbox quarantine wording, and deferred capability claims.
+- Follow-up verification: `npm run typecheck`, `npm test -- --runInBand` (13 suites / 53 tests), `npm run export`, and `git diff --check` all passed.

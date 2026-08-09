@@ -28,7 +28,7 @@ export default function Assignment() {
   if (!item) return <Screen title="Assignment"><EmptyState icon="document-text-outline" title="Assignment unavailable" text="It may not be assigned to your course." /></Screen>;
 
   const save = handleSubmit(async (values) => {
-    try { setError(null); const result = await repository.saveSubmissionDraft(item.id, answer.parse(values).notes); setSaved(true); Alert.alert(result.offline ? 'Saved offline' : 'Draft synced', result.offline ? 'Your draft will sync when connected.' : 'Your draft is saved to LearnFlow.'); }
+    try { setError(null); const result = await repository.saveSubmissionDraft(item.id, answer.parse(values).notes); await queryClient.invalidateQueries({ queryKey: queryKeys.assignments }); setSaved(true); Alert.alert(result.offline ? 'Saved offline' : 'Draft synced', result.offline ? 'Your draft will sync when connected.' : 'Your draft is saved to LearnFlow.'); }
     catch (e) { setError(e instanceof Error ? e.message : 'Could not save draft.'); }
   });
   const submit = () => {
