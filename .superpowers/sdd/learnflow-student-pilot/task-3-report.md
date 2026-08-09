@@ -28,4 +28,5 @@ Physical Android smoke testing and live Supabase/RLS verification were not run i
 - Added SQL-time parsing/current-next boundary tests, profile-scoped timetable QR windows, actor-scoped local receipts with isolation tests, explicit overall attendance handling, full weekly timetable rendering, honest connected achievements empty state, assignment invalidation, visible notification failures, and package-lock version metadata.
 - Corrected permissions scope, migration ordering, active-outbox quarantine wording, and deferred capability claims.
 - Preserved demo QR schedule fallback while requiring authenticated profile/session actors for connected scans and receipt updates.
+- Added a tested bridge guard that blocks demo/signed-out native attendance launch, gates demo navigation, and labels demo progress as sample data.
 - Follow-up verification: `npm run typecheck`, `npm test -- --runInBand` (13 suites / 53 tests), `npm run export`, and `git diff --check` all passed.

@@ -40,7 +40,7 @@ export default function ScanAttendance() {
   };
   return <Screen title="Scan attendance" subtitle="Point your camera at the classroom QR.">
     {!result && <View style={a.cameraFrame}><CameraView style={StyleSheet.absoluteFill} facing="back" onBarcodeScanned={scanning ? onScanned : undefined} barcodeScannerSettings={{ barcodeTypes: ['qr'] }} /><View style={a.target}><View style={a.corner} /><View style={[a.corner, a.topRight]} /><View style={[a.corner, a.bottomLeft]} /><View style={[a.corner, a.bottomRight]} /></View></View>}
-    {result && <Card style={a.success}><Pill text="QR READ" tone="green" /><Text style={a.title}>Class {result.classCode}</Text><Text style={s.body}>Token captured. LearnFlow can now fill your college ID on the live page.</Text><Button label="Mark attendance" onPress={() => router.push({ pathname: '/attendance-submit', params: { url: result.url, classCode: result.classCode } })} /><Button label="Scan again" secondary onPress={() => { setResult(null); setScanning(true); }} /></Card>}
+    {result && <Card style={a.success}><Pill text="QR READ" tone="green" /><Text style={a.title}>Class {result.classCode}</Text><Text style={s.body}>{auth.configured ? 'Token captured. LearnFlow can now fill your college ID on the live page.' : 'Demo mode saved a local scan receipt. Sign in to use the college attendance form.'}</Text>{auth.configured && <Button label="Mark attendance" onPress={() => router.push({ pathname: '/attendance-submit', params: { url: result.url, classCode: result.classCode } })} />}<Button label="Scan again" secondary onPress={() => { setResult(null); setScanning(true); }} /></Card>}
     <Button label="Back to attendance" secondary onPress={() => router.back()} />
   </Screen>;
 }

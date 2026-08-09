@@ -1,4 +1,5 @@
 export type AttendanceQr = { url: string; classCode: string; token: string };
+export const canOpenAttendanceBridge = (input: { configured: boolean; authenticated: boolean; sccId: string | null | undefined }) => input.configured && input.authenticated && Boolean(input.sccId?.trim());
 
 export function parseAttendanceQr(value: string): AttendanceQr {
   let url: URL;

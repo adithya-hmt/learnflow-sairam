@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { NativeModules, StyleSheet, Text } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Button, Card, Pill, Screen, s } from '@/components';
-import { parseAttendanceQr } from '@/attendance-qr';
+import { canOpenAttendanceBridge, parseAttendanceQr } from '@/attendance-qr';
 import { updateAttendanceReceipt } from '@/attendance-receipts';
 import { useProfile } from '@/data/hooks';
 import { colors } from '@/theme';
@@ -21,7 +21,7 @@ export default function AttendanceSubmit() {
   const [tone, setTone] = useState<'blue' | 'green' | 'coral' | 'gold'>('blue');
 
   useEffect(() => {
-    if (!url || !attendanceBridge || !studentId || !actorId) { setStatus(!studentId ? 'Your profile does not have an SCC ID yet.' : !actorId ? 'Your signed-in profile is still loading.' : 'Automatic attendance is available in the native Android app.'); setTone('coral'); return; }
+    if (!canOpenAttendanceBridge({ configured: auth.configured, authenticated: Boolean(auth.session?.user.id), sccId: studentId }) || !url || !attendanceBridge || !actorId) { setStatus(!auth.configured ? 'Demo mode cannot open the college attendance form. Sign in to use live attendance.' : !auth.session ? 'Sign in before using live attendance.' : !studentId ? 'Your profile does not have an SCC ID yet.' : !actorId ? 'Your signed-in profile is still loading.' : 'Automatic attendance is available in the native Android app.'); setTone('coral'); return; }
     let active = true;
     try {
       const qr = parseAttendanceQr(url);
