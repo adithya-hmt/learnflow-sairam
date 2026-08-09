@@ -4,7 +4,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
 import { Card, Pill, Screen, Section, s } from '@/components';
 import { formatCalendarDate, formatClockTime, formatDateTime, getWeekDates, isUpcomingEvent } from '@/domain';
-import { useAssignments, useEvents, useProfile } from '@/data/hooks';
+import { useAssignments, useEvents, useProfile, useTimetable } from '@/data/hooks';
 import { academicMilestones, getScheduleStatus, isSectionDStudent, isWeekday, periods, timetable, weekdays, type Weekday } from '@/studentData';
 import { colors } from '@/theme';
 import { useAuth } from '@/auth';
@@ -15,9 +15,7 @@ const weekdayFor = (date: Date): Weekday | null => {
 };
 
 const periodTime = (value: string) => {
-  const [hour, minute] = value.split(':').map(Number);
-  const date = new Date();
-  date.setHours(hour, minute, 0, 0);
+  const date = value.includes('T') ? new Date(value) : (() => { const [hour, minute] = value.split(':').map(Number); const result = new Date(); result.setHours(hour, minute, 0, 0); return result; })();
   return formatClockTime(date);
 };
 
@@ -28,6 +26,7 @@ export default function Calendar() {
   const { data: profile } = useProfile();
   const { data: assignments = [] } = useAssignments();
   const { data: events = [] } = useEvents();
+  const { data: liveSlots = [] } = useTimetable();
 
   useEffect(() => {
     const timer = setInterval(() => setNow(new Date()), 30_000);
@@ -39,11 +38,12 @@ export default function Calendar() {
   const upcomingEvents = useMemo(() => events.filter((event) => isUpcomingEvent(event.startsAt, event.endsAt, now)), [events, now]);
   const status = currentWeekday === selected ? getScheduleStatus(selected, now) : null;
 
-  if (auth.configured && !isSectionDStudent(profile)) return <Screen title="My calendar" subtitle={profile?.department || 'Your live college schedule'}>
-    <ClockCard now={now} message="Live schedule uses this device’s local time." />
+  if (auth.configured) { const todaySlots = liveSlots.filter((slot) => slot.weekday === (now.getDay() || 7)); const currentSlot = todaySlots.find((slot) => now >= new Date(slot.startsAt) && now <= new Date(slot.endsAt)); const nextSlot = todaySlots.find((slot) => new Date(slot.startsAt) > now); const clockMessage = currentSlot ? `${currentSlot.courseCode} now · ${currentSlot.displayTitle}` : nextSlot ? `Next: ${nextSlot.courseCode} at ${periodTime(nextSlot.startsAt)}` : 'No current or upcoming period published for today.'; return <Screen title="My calendar" subtitle={profile?.department || 'Your live college schedule'}>
+    <ClockCard now={now} message={clockMessage} />
+    <Section title="Published timetable">{liveSlots.length === 0 ? <Card><Text style={s.body}>No timetable slots are published for this profile.</Text></Card> : liveSlots.slice(0, 20).map((slot) => <Card key={slot.id}><Text style={c.title}>{slot.courseCode} · {slot.displayTitle}</Text><Text style={s.body}>{weekdays[slot.weekday - 1] || 'Day unavailable'} · {periodTime(slot.startsAt)}–{periodTime(slot.endsAt)}{slot.room ? ` · ${slot.room}` : ''}</Text></Card>)}</Section>
     <Section title="Upcoming events">{upcomingEvents.length === 0 ? <Card><Text style={s.body}>No upcoming classes or events are currently published for this account.</Text></Card> : upcomingEvents.slice(0, 12).map((event) => <Card key={event.id}><Text style={c.title}>{event.title}</Text><Text style={s.body}>{formatDateTime(event.startsAt)} · {event.location || event.kind}</Text></Card>)}</Section>
     <Section title="Upcoming work">{assignments.length === 0 ? <Card><Text style={s.body}>No pending assignments are currently published.</Text></Card> : assignments.slice(0, 8).map((item) => <Pressable key={item.id} onPress={() => router.push(`/assignment/${item.id}`)}><Card style={c.assignment}><View style={{ flex: 1 }}><Text style={c.title}>{item.title}</Text><Text style={s.body}>{item.course} · {item.dueAt ? formatDateTime(item.dueAt) : item.status}</Text></View><Pill text={item.status} tone="gold" /></Card></Pressable>)}</Section>
-  </Screen>;
+  </Screen>; }
 
   const classes = timetable[selected];
   const clockMessage = currentWeekday !== selected
@@ -54,7 +54,7 @@ export default function Calendar() {
         ? `Next: ${status.next.code} at ${periodTime(status.next.start)}`
         : currentWeekday ? 'Classes are complete for today.' : 'No college timetable today.';
 
-  return <Screen title="My calendar" subtitle="CSE · Section D · V Semester">
+  return <Screen title="My calendar" subtitle="Demo timetable">
     <ClockCard now={now} message={clockMessage} />
     <View style={c.days}>{weekdays.map((day, index) => {
       const active = selected === day;

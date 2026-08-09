@@ -6,7 +6,7 @@ import { recentAttendance, student, subjectAttendance } from '@/studentData';
 import { colors } from '@/theme';
 import { formatDateTime } from '@/domain';
 import { useAuth } from '@/auth';
-import { useAttendance, useProfile } from '@/data/hooks';
+import { useAttendance, useAttendanceSummaries, useProfile } from '@/data/hooks';
 import { getAttendanceReceipts, type AttendanceReceipt } from '@/attendance-receipts';
 
 const toneFor = (value: number) => value < 75 ? colors.coral : value < 85 ? colors.gold : value < 95 ? colors.blue : colors.green;
@@ -16,14 +16,16 @@ export default function Attendance() {
   const auth = useAuth();
   const { data: profile } = useProfile();
   const { data: records = [] } = useAttendance();
+  const { data: summaries = [] } = useAttendanceSummaries();
   const [receipts, setReceipts] = useState<AttendanceReceipt[]>([]);
   useFocusEffect(useCallback(() => { void getAttendanceReceipts().then(setReceipts); }, []));
-  if (auth.configured) return <Screen title="My attendance" subtitle={profile?.fullName || 'Signed-in student'}>
+  if (auth.configured) { const overall = summaries.length ? summaries.reduce((sum, item) => sum + item.percentage, 0) / summaries.length : null; return <Screen title="My attendance" subtitle={profile?.fullName || 'Signed-in student'}>
     <Pressable accessibilityRole="button" onPress={() => router.push('/scan-attendance')}><Card style={a.scan}><View><Text style={a.scanTitle}>Scan classroom QR</Text><Text style={a.scanBody}>Read the current attendance token</Text></View><Text style={a.scanArrow}>›</Text></Card></Pressable>
-    <Card style={a.hero}><View><Text style={a.percent}>{records.length}</Text><Text style={a.heroLabel}>Recorded check-ins</Text></View><View style={a.heroSide}><Pill text="LIVE DATA" tone="green" /><Text style={a.heroText}>{profile?.department || 'Department not set'}</Text><Text style={a.heroMeta}>Attendance percentages appear when scheduled session totals are available.</Text></View></Card>
-    <Section title="Recent attendance">{records.length === 0 ? <Card><Text style={s.body}>No attendance records are available for this account yet.</Text></Card> : records.slice(0, 20).map((record) => <Card key={record.id} style={a.subject}><View style={s.between}><View><Text style={a.subjectName}>{formatDateTime(record.attendedAt)}</Text><Text style={s.body}>{record.courseId ? `Course ${record.courseId.slice(0, 8)}` : 'Campus attendance'}</Text></View><Pill text={record.method.toUpperCase()} tone="blue" /></View></Card>)}</Section>
+    <Card style={a.hero}><View><Text style={a.percent}>{overall == null ? '—' : `${overall.toFixed(1)}%`}</Text><Text style={a.heroLabel}>Overall attendance</Text></View><View style={a.heroSide}><Pill text="IMPORTED SUMMARY" tone="green" /><Text style={a.heroText}>{profile?.department || 'Department not set'}</Text><Text style={a.heroMeta}>Percentages are sourced from the latest published attendance summary.</Text></View></Card>
+    <Section title="Course attendance">{summaries.length === 0 ? <Card><Text style={s.body}>No attendance summary is available for this account yet.</Text></Card> : summaries.map((summary) => <Card key={summary.id} style={a.subject}><View style={s.between}><View style={{ flex: 1 }}><Text style={a.code}>{summary.courseCode || 'Course'}</Text><Text style={s.body}>{summary.attendedCount == null || summary.heldCount == null ? 'Session totals unavailable' : `${summary.attendedCount} of ${summary.heldCount} sessions attended`}</Text></View><Text style={[a.subjectPercent, { color: toneFor(summary.percentage) }]}>{summary.percentage.toFixed(1)}%</Text></View><Progress value={summary.percentage} color={toneFor(summary.percentage)} /></Card>)}</Section>
+    <Card style={a.source}><Text style={a.sourceTitle}>Imported source</Text><Text style={s.body}>{summaries[0] ? `${summaries[0].source || 'Attendance system'} · ${formatDateTime(summaries[0].sourceAt)}` : 'Source timestamp unavailable until a summary is published.'}</Text></Card>
     <ReceiptSection receipts={receipts} />
-  </Screen>;
+  </Screen>; }
   const belowMinimum = subjectAttendance.filter((subject) => subject.percentage < 75).length;
   const watchlist = subjectAttendance.filter((subject) => subject.percentage >= 75 && subject.percentage < 85).length;
   return <Screen title="My attendance" subtitle={`${student.name} · ${student.rollNo}`}>

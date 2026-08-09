@@ -4,7 +4,6 @@ import { colors } from '@/theme';
 import { useSocialPosts } from '@/data/hooks';
 import { formatDateTime } from '@/domain';
 export default function Social() { const { data: posts = [] } = useSocialPosts(); return <Screen title="Sairam Social" subtitle="Verified campus updates, clubs and student life">
-  <View style={x.filters}>{['For you', 'Departments', 'Clubs', 'Events'].map((f, i) => <View key={f} style={[x.filter, i === 0 && x.active]}><Text style={[x.filterText, i === 0 && x.activeText]}>{f}</Text></View>)}</View>
   <Section title="Campus feed">{posts.map((post, index) => { const author = post.clubName || 'Sri Sairam'; return <Card key={post.id}><View style={s.row}><View style={[x.logo, { backgroundColor: index % 2 ? colors.green : colors.blue }]}><Text style={x.logoText}>{author.slice(0, 2).toUpperCase()}</Text></View><View style={{ flex: 1 }}><Text style={x.author}>{author}</Text><View style={s.row}><Pill text="Verified" tone="green" /><Text style={x.time}> · {formatDateTime(post.publishedAt)}</Text></View></View></View><Text style={x.post}>{post.body}</Text>{post.mediaUrls.length > 0 && <View style={x.media}><Text style={x.mediaMark}>SAIRAM</Text><Text style={x.mediaTitle}>CAMPUS UPDATE</Text><Text style={x.mediaBody}>Approved media attachment</Text></View>}</Card>; })}</Section>
   <Card style={x.safety}><Text style={x.safetyTitle}>A safer campus feed</Text><Text style={s.body}>Only approved college adapters can import or publish external content. Links and media are validated before they enter LearnFlow.</Text></Card>
 </Screen>; }

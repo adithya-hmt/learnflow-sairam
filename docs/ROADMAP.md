@@ -8,21 +8,21 @@
 
 ## Phase 1 — connected pilot (implemented locally; deployment pending)
 
-- Supabase email authentication, profile-driven roles, typed repositories, learning/video/progress flows, notifications, social feed, and scoped staff workspaces are implemented.
+- Supabase email authentication, profile-driven roles, typed repositories, learning/video/progress flows, notifications, attendance summaries, and the native QR confirmation bridge are implemented locally.
 - SQLite assignment drafts replay when connectivity returns; unsupported mutations fail closed and remain queued.
-- Apply both migrations to the intended Supabase project, assign real departments/courses/clubs/mentors, and configure EAS push credentials.
+- Apply both migrations to the intended Supabase project, assign real departments/courses, and run Android smoke tests. Remote push delivery, quizzes, social interaction, and staff/mentor workspaces remain deferred.
 - Run Android device smoke tests and live RLS policy tests for all six roles before the college pilot.
 
-## Phase 2 — campus collaboration
+## Phase 2 — campus collaboration (deferred)
 
 - Mentor views and scoped notes.
 - Club coordinator tools and a moderated Sairam social feed.
 - Adapter-based ingestion for approved social providers with per-provider kill switches and audit events.
 - Department dashboards and export controls.
 
-## Phase 3 — hardware and operations
+## Phase 3 — hardware and operations (deferred)
 
-- NFC/QR attendance adapter with signed, replay-resistant events.
+- NFC attendance and any automated attendance adapter beyond the approved native QR confirmation bridge.
 - Classroom display and kiosk modes with restricted sessions.
 - BLE and lab hardware adapters behind a versioned capability contract.
 - Device fleet health, calibration, observability, and incident runbooks.

@@ -3,20 +3,20 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { useLocalSearchParams } from 'expo-router';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import { Button, Card, EmptyState, Pill, Screen, Section, s } from '@/components';
-import { useLesson, useProfile } from '@/data/hooks';
-import { supabase } from '@/lib/supabase';
+import { useLesson } from '@/data/hooks';
+import { repository, queryKeys } from '@/data';
+import { useQueryClient } from '@tanstack/react-query';
 import { colors } from '@/theme';
 import { openExternalUrl } from '@/lib/links';
 
 export default function LessonScreen() {
   const { id = '' } = useLocalSearchParams<{ id: string }>();
   const { data: lesson, isLoading } = useLesson(id);
-  const { data: profile } = useProfile();
+  const queryClient = useQueryClient();
   const player = useVideoPlayer(lesson?.videoUrl ?? null, (instance) => { instance.loop = false; });
   const complete = async () => {
-    if (!supabase || !profile || !lesson) return Alert.alert('Demo mode', 'Progress will save after connecting your account.');
-    const { error } = await supabase.from('lesson_progress').upsert({ lesson_id: lesson.id, student_id: profile.id, completed_at: new Date().toISOString(), position_seconds: Math.floor(player.currentTime) }, { onConflict: 'lesson_id,student_id' });
-    if (error) Alert.alert('Could not save progress', error.message); else Alert.alert('Lesson complete', 'Your progress has been updated.');
+    if (!lesson) return;
+    try { const result = await repository.saveLessonProgress(lesson.id, player.currentTime, new Date().toISOString()); await queryClient.invalidateQueries({ queryKey: queryKeys.progress }); Alert.alert(result.offline ? 'Progress queued' : 'Lesson complete', result.offline ? 'It will sync when connected.' : 'Your progress has been updated.'); } catch (error) { Alert.alert('Could not save progress', error instanceof Error ? error.message : 'Please try again.'); }
   };
   const openResource = async (url: string) => { try { await openExternalUrl(url); } catch { Alert.alert('Resource unavailable', 'This resource link is invalid or could not be opened.'); } };
   if (isLoading) return <Screen title="Lesson"><Text style={s.body}>Loading lesson…</Text></Screen>;

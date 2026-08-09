@@ -2,7 +2,7 @@
   "expo": {
     "name": "LearnFlow",
     "slug": "learnflow-sairam",
-    "version": "1.1.0",
+    "version": "1.2.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "scheme": "learnflow",
@@ -13,7 +13,7 @@
     },
     "android": {
       "package": "edu.sairam.learnflow",
-      "versionCode": 4,
+      "versionCode": 5,
       "allowBackup": false,
       "adaptiveIcon": {
         "backgroundColor": "#F5F7FA",

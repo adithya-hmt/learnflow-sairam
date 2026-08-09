@@ -9,7 +9,7 @@ npm run verify
 npm --workspace @learnflow/mobile run export
 ```
 
-The type check covers the Router tree and strict TypeScript sources. Jest locks role capabilities, adapter validation, SQLite queue/cache behavior, and account ownership of queued drafts. Both SQL migrations, the seed, and `supabase/tests/rls_smoke.sql` are executed with `ON_ERROR_STOP` against disposable PostgreSQL during release verification. The RLS smoke test blocks role escalation, grade/quiz tampering, unpublished lessons, fake course events, and club access to academic assignments. A physical device or emulator is still required for interactive Android and remote push verification.
+The type check covers the Router tree and strict TypeScript sources. Jest locks role capabilities, adapter validation, SQLite queue/cache behavior, and account ownership of queued drafts. Both SQL migrations, the seed, and `supabase/tests/rls_smoke.sql` are executed with `ON_ERROR_STOP` against disposable PostgreSQL during release verification. The RLS smoke test blocks role escalation, grade/quiz tampering, unpublished lessons, fake course events, and club access to academic assignments. A physical device or emulator is still required for interactive Android verification; remote push, quizzes, social interaction, staff/mentor workspaces, EDUMATE, NFC/BLE, and kiosk flows are deferred.
 
 ## MVP test layers
 

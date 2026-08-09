@@ -4,7 +4,6 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { Button, Card, Pill, Screen, s } from '@/components';
 import { parseAttendanceQr } from '@/attendance-qr';
 import { updateAttendanceReceipt } from '@/attendance-receipts';
-import { student } from '@/studentData';
 import { useProfile } from '@/data/hooks';
 import { colors } from '@/theme';
 
@@ -14,12 +13,12 @@ const attendanceBridge = NativeModules.AttendanceBridge as { open(url: string, s
 export default function AttendanceSubmit() {
   const { url, classCode } = useLocalSearchParams<{ url: string; classCode: string }>();
   const { data: profile } = useProfile();
-  const studentId = profile?.rollNo || student.rollNo;
+  const studentId = profile?.rollNo || '';
   const [status, setStatus] = useState('Opening the secure attendance screen…');
   const [tone, setTone] = useState<'blue' | 'green' | 'coral' | 'gold'>('blue');
 
   useEffect(() => {
-    if (!url || !attendanceBridge) { setStatus('Automatic attendance is available in the native Android app.'); setTone('coral'); return; }
+    if (!url || !attendanceBridge || !studentId) { setStatus(!studentId ? 'Your profile does not have an SCC ID yet.' : 'Automatic attendance is available in the native Android app.'); setTone('coral'); return; }
     let active = true;
     try {
       const qr = parseAttendanceQr(url);

@@ -3,11 +3,12 @@ import { Image, type ImageSourcePropType, Pressable, ScrollView, type StyleProp,
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { colors, shadow } from './theme';
+import { supabase } from './lib/supabase';
 
 export function Screen({ children, title, subtitle, action }: PropsWithChildren<{ title: string; subtitle?: string; action?: ReactNode }>) {
   return <SafeAreaView style={s.safe} edges={['top']}><ScrollView contentContainerStyle={s.screen} showsVerticalScrollIndicator={false}>
     <View style={s.header}><View style={{ flex: 1 }}><Text style={s.eyebrow}>SRI SAIRAM · LEARNFLOW</Text><Text style={s.title}>{title}</Text>{subtitle && <Text style={s.subtitle}>{subtitle}</Text>}</View>{action}</View>
-    {children}
+    {!supabase && <View style={s.demoBanner}><Text style={s.demoBannerTitle}>DEMO MODE · NO BACKEND CONNECTED</Text><Text style={s.demoBannerBody}>This screen uses sample content. It is not a connected student account and cannot submit or record college data.</Text></View>}{children}
   </ScrollView></SafeAreaView>;
 }
 export function Card({ children, style }: PropsWithChildren<{ style?: StyleProp<ViewStyle> }>) { return <View style={[s.card, style]}>{children}</View>; }
@@ -27,5 +28,5 @@ export const s = StyleSheet.create({
   pill: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999, alignSelf: 'flex-start' }, pillText: { fontSize: 11, fontWeight: '800' }, bluePill: { backgroundColor: colors.sky }, blueText: { color: colors.blue }, greenPill: { backgroundColor: colors.mint }, greenText: { color: colors.green }, goldPill: { backgroundColor: '#F9ECCB' }, goldText: { color: '#8D650E' }, coralPill: { backgroundColor: '#F8E3DF' }, coralText: { color: colors.coral },
   track: { height: 7, backgroundColor: '#E9EFED', borderRadius: 99, overflow: 'hidden' }, fill: { height: '100%', borderRadius: 99 },
   button: { minHeight: 48, backgroundColor: colors.blue, borderRadius: 14, paddingHorizontal: 17, paddingVertical: 13, alignItems: 'center', justifyContent: 'center' }, buttonSecondary: { backgroundColor: colors.white, borderWidth: 1, borderColor: colors.line }, buttonText: { color: colors.white, fontSize: 14, fontWeight: '800' },
-  emptyIcon: { width: 52, height: 52, borderRadius: 16, backgroundColor: colors.sky, alignItems: 'center', justifyContent: 'center', marginBottom: 10 }, emptyImage: { width: '100%', height: 310, resizeMode: 'contain' }, emptyTitle: { color: colors.ink, fontSize: 17, fontWeight: '800', marginBottom: 4 },
+  emptyIcon: { width: 52, height: 52, borderRadius: 16, backgroundColor: colors.sky, alignItems: 'center', justifyContent: 'center', marginBottom: 10 }, emptyImage: { width: '100%', height: 310, resizeMode: 'contain' }, emptyTitle: { color: colors.ink, fontSize: 17, fontWeight: '800', marginBottom: 4 }, demoBanner: { backgroundColor: '#7F1D1D', borderRadius: 12, padding: 13, marginBottom: 5 }, demoBannerTitle: { color: '#FEE2E2', fontSize: 11, fontWeight: '900', letterSpacing: .6 }, demoBannerBody: { color: '#FFF1F2', fontSize: 12, lineHeight: 17, marginTop: 4 },
 });
